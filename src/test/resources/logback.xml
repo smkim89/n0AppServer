@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>%5level [%d{HH:mm:ss}] %logger{36} - %m%n</pattern>
+		</encoder>
+	</appender>
+	
+	
+	<appender name="USER_TRACE" class="ch.qos.logback.classic.sift.SiftingAppender">
+		<discriminator>
+			<key>userid</key>
+			<defaultValue>no_login</defaultValue>
+		</discriminator>
+		<sift>
+			<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+				<file>E:\log\${userid}.log</file>
+				<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+					<FileNamePattern>E:\log\%d{yyyy-MM-dd}\${userid}.log</FileNamePattern>
+					<timeBasedFileNameingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+						<maxFileSize>50MB</maxFileSize>
+					</timeBasedFileNameingAndTriggeringPolicy>
+				</rollingPolicy>
+				
+				<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+					<pattern>[%d{yyyy-MM-dd HH:mm:ss}]%5level %mdc{userid} : %m%n</pattern>
+				</encoder>
+				<append>true</append>
+				
+			</appender>
+		</sift>
+	</appender>
+
+	<logger name="com.tmonet" level="DEBUG">
+		<appender-ref ref="STDOUT" />
+	</logger>
+	
+	<logger name="com.tmonet.common.interceptor.UserTraceInterceptor" level="DEBUG">
+		<appender-ref ref="USER_TRACE" />
+	</logger>
+	
+	<logger name="org.springframework" level="INFO">
+		<appender-ref ref="STDOUT" />
+	</logger>
+
+<!-- 	<root level="DEBUG"> -->
+<!-- 		<appender-ref ref="STDOUT" /> -->
+<!-- 	</root> -->
+
+</configuration>

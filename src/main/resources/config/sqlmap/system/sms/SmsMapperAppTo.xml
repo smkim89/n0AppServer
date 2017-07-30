@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/dtd/DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.swag.common.util.sms.mapper.SmsMapper">
+	
+	
+	<insert id="insertSms" parameterType="dataBox">
+		<![CDATA[		
+		INSERT INTO UDS_MSG (
+	          MSG_TYPE,
+	          CMID,
+	          REQUEST_TIME,
+	          SEND_TIME,
+	          DEST_PHONE,
+	          SEND_PHONE,
+	          MSG_BODY,
+	          USE_SERVICE,
+	          USE_ID
+		) VALUES (
+	          0,
+	          CONCAT(TO_CHAR(SYSDATE, 'yyyymmddHH24MISS'), APP_UDS_MSG_SEQ.NEXTVAL),
+	          SYSDATE,
+	          SYSDATE,
+	          #{mobile_no},
+	          #{callback_no},
+	          #{msg, jdbcType=VARCHAR},
+	          'JADE_ADMIN',
+	          'TMONET'
+		)
+		
+	 	]]>
+	</insert>
+	
+	<insert id="insertNoCostSms" parameterType="dataBox">
+		<![CDATA[		
+		INSERT INTO MCPREAL.MCPL_SEND_SMS 
+       ( 
+           MSG_SEQ_NO, 
+           COMP_DIV, 
+           SRC_CALL_NO, 
+           DEST_CID, 
+           DEST_CALL_NO,  
+           MSG, 
+           VALID_PERIOD, 
+           CALL_BACK, 
+           RSLT_VAL, 
+           SND_DTTM, 
+           MSG_DIV, 
+           N_SMS_ST 
+       ) 
+       VALUES
+       ( 
+           MCPREAL.SEND_SMS_SEQ.NEXTVAL, 
+           #{mtel_co}, 
+           0, 
+           #{mobile_no_cid}, 
+           #{mobile_no_call_no}, 
+           #{msg, jdbcType=VARCHAR},  
+           0, 
+           #{callback_no}, 
+           0, 
+           TO_CHAR(SYSDATE, 'yyyymmddhh24miss'), 
+           0, 
+           '0' 
+       )  
+		
+	 	]]>
+	</insert>  
+	
+</mapper>

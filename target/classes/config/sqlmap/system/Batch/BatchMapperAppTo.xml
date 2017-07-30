@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/dtd/DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.swag.system.batch.mapper.BatchMapper">
+
+	<!-- 배치실행 목록 조회 -->
+	<select id="selectBatchDCycle" resultType="dataBox">
+		SELECT BATCH_NO
+			, BATCH_NM
+			, BATCH_DES
+			, SYSTEM_DIVN
+			, REG_ID
+			, REG_DH
+			, UPDT_ID
+			, UPDT_DH
+			, JOB
+			, TYPE
+			, CYCLE
+			, USE_YN
+			, BATCH_STRT_DT
+			, BATCH_END_DT
+			, BATCH_TIME
+		FROM MANAGE_WEB_BATCH
+		WHERE USE_YN = 'Y' 
+		AND DEL_YN = 'N' OR DEL_YN IS NULL
+		AND TO_CHAR(SYSDATE, 'YYYYMMDD') BETWEEN NVL(BATCH_STRT_DT,'000000') AND NVL(BATCH_END_DT,'999999')
+		AND BATCH_TIME = TO_CHAR(SYSDATE, 'HH24MI')
+		AND CYCLE = 'D'
+	</select>
+	
+	
+	<select id="selectBatchMCycle" resultType="dataBox">
+		SELECT * 
+			  FROM 
+			       (SELECT outside.BATCH_NO , 
+			              outside.BATCH_NM , 
+			              outside.BATCH_DES , 
+			              outside.SYSTEM_DIVN , 
+			              outside.REG_ID , 
+			              outside.REG_DH , 
+			              outside.UPDT_ID , 
+			              outside.UPDT_DH , 
+			              outside.JOB , 
+			              outside.TYPE , 
+			              outside.CYCLE , 
+			              outside.USE_YN , 
+			              outside.BATCH_STRT_DT , 
+			              outside.BATCH_END_DT , 
+			              outside.BATCH_TIME , 
+			              (SYSDATE - to_date(inside.reg_dh, 'yyyymmddhh24miss') ) * 24 * 60 AS BEFORE_MINUTE 
+			         FROM MANAGE_WEB_BATCH outside 
+			          INNER JOIN 
+			              (SELECT BATCH_NO, 
+			                     MAX(REG_DH) KEEP (DENSE_RANK FIRST 
+			            ORDER BY REG_DH DESC) AS REG_DH 
+			                FROM MANAGE_WEB_BATCH_HIST 
+			               GROUP BY BATCH_NO 
+			              ) inside 
+			              ON outside.BATCH_NO = inside.BATCH_NO 
+			              AND outside.CYCLE = 'M' 
+			       ) 
+			 WHERE before_minute >= batch_time  
+
+	</select>
+	
+	<!-- 배치 시작 이력 저장 -->
+	<insert id="insertBatchHist" parameterType="dataBox">
+		<selectKey keyProperty="batchHistNo" resultType="int" order="AFTER">
+		<![CDATA[
+			SELECT MANAGE_WEB_BATCH_HIST_SEQ.CURRVAL FROM DUAL
+		]]>
+		</selectKey>
+		INSERT INTO MANAGE_WEB_BATCH_HIST(
+			BATCH_HIST_NO
+			, BATCH_NO
+			, BATCH_STRT_DH
+			, REG_DH
+			, UPDT_DH
+			, BATCH_SUCC_YN 	
+			, BATCH_TYPE		
+		)VALUES(
+			MANAGE_WEB_BATCH_HIST_SEQ.NEXTVAL
+			, #{batchNo}
+			, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')		
+			, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			, TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			, #{batchSuccYn}
+			, #{batchType}
+		)		
+	</insert>
+	
+	<!-- 배치 완료 이력 저장 -->
+	<update id="updateBatchHist" parameterType="dataBox">
+		UPDATE MANAGE_WEB_BATCH_HIST SET			
+			BATCH_END_DH = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')	
+			, UPDT_DH = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')		
+		WHERE BATCH_HIST_NO = #{batchHistNo}	
+	</update>
+	
+	<!-- 배치 오류 이력 저장 -->
+	<update id="updateBatchHistErrMsg" parameterType="dataBox">
+		UPDATE MANAGE_WEB_BATCH_HIST SET			
+			ERR_MSG = #{errMsg}	
+			, UPDT_DH = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')		
+			, BATCH_SUCC_YN = #{batchSuccYn}
+		WHERE BATCH_HIST_NO = #{batchHistNo}	
+	</update>
+	
+	<!-- 배치실행 INSERT 구문 -->
+	<update id="insertBatchExecute" parameterType="dataBox">
+		${batchSql}
+	</update>
+	
+	
+	<sql id="page_start">
+	<![CDATA[
+	SELECT 
+		*
+	FROM (
+	  SELECT 
+	    P.*, ROWNUM AS RNUM
+	  FROM (
+  	]]>
+	</sql>
+	<sql id="page_end">
+	<![CDATA[
+	) P
+	  WHERE ROWNUM <= #{end}
+		) PP
+	WHERE PP.RNUM > #{start}
+	]]>
+	</sql>
+	
+	<select id="selectBatchListIqry" resultType="dataBox" parameterType="dataBox">	
+		<include refid="page_start"/>	
+        <![CDATA[
+	       	SELECT BATCH_NO
+				, BATCH_NM
+				, BATCH_DES
+				, SYSTEM_DIVN
+				, REG_ID
+				, TO_CHAR(TO_DATE(REG_DH, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD HH24:MI:SS') REG_DH
+				, UPDT_ID
+				, TO_CHAR(TO_DATE(UPDT_DH, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD HH24:MI:SS') UPDT_DH
+				, BATCH_SQL
+				, USE_YN
+				, TO_CHAR(TO_DATE(BATCH_STRT_DT, 'YYYYMMDD'), 'YYYY-MM-DD') BATCH_STRT_DT
+				, TO_CHAR(TO_DATE(BATCH_END_DT, 'YYYYMMDD'), 'YYYY-MM-DD') BATCH_END_DT
+				, TO_CHAR(TO_DATE(BATCH_TIME, 'HH24MI'), 'HH24:MI') BATCH_TIME
+			FROM MANAGE_WEB_BATCH
+			WHERE DEL_YN = 'N' OR DEL_YN IS NULL			
+        ]]>
+    <if test="searchTxt != null and searchTxt != ''">
+    	AND BATCH_NM LIKE '%'||#{searchTxt}||'%'		
+    </if>
+    	<![CDATA[
+    	ORDER BY BATCH_NO DESC
+    	]]>    	
+		<include refid="page_end"/>				
+	</select>
+	
+	<select id="selectBatchListCountIqry" resultType="int">
+     	<![CDATA[
+        SELECT COUNT(1) AS CNT FROM MANAGE_WEB_BATCH
+        WHERE DEL_YN = 'N' OR DEL_YN IS NULL			        
+        ]]>
+    <if test="searchTxt != null and searchTxt != ''">
+    	AND BATCH_NM LIKE '%'||#{searchTxt}||'%'		
+    </if>
+	</select>
+	
+	
+	<select id="selectBatchOne" resultType="dataBox" parameterType="dataBox">
+        <![CDATA[
+	       	SELECT BATCH_NO
+				, BATCH_NM
+				, BATCH_DES
+				, SYSTEM_DIVN
+				, REG_ID
+				, TO_CHAR(TO_DATE(REG_DH, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD HH24:MI:SS') REG_DH
+				, UPDT_ID
+				, TO_CHAR(TO_DATE(UPDT_DH, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD HH24:MI:SS') UPDT_DH
+				, JOB
+				, TYPE
+				, CYCLE
+				, USE_YN
+				, TO_CHAR(TO_DATE(BATCH_STRT_DT, 'YYYYMMDD'), 'YYYY-MM-DD') BATCH_STRT_DT
+				, TO_CHAR(TO_DATE(BATCH_END_DT, 'YYYYMMDD'), 'YYYY-MM-DD') BATCH_END_DT
+				, TO_CHAR(TO_DATE(BATCH_TIME, 'HH24MI'), 'HH24:MI') BATCH_TIME
+			FROM MANAGE_WEB_BATCH
+			WHERE DEL_YN = 'N' OR DEL_YN IS NULL
+			AND BATCH_NO = #{batchNo}			
+        ]]>
+	</select>
+	
+	<select id="selectBatchUseYn" resultType="String" parameterType="dataBox">
+		<![CDATA[
+	       	SELECT USE_YN
+			FROM MANAGE_WEB_BATCH			
+			WHERE BATCH_NO = #{batchNo}			
+        ]]>
+	</select>
+	
+	<update id="updateBatch">
+		UPDATE MANAGE_WEB_BATCH 
+		SET BATCH_NM = #{batchNm}
+			, BATCH_DES = #{batchDes}
+			, SYSTEM_DIVN = #{systemDivn}
+			, UPDT_ID = #{userId}
+			, UPDT_DH = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+			, BATCH_SQL = #{batchSql}
+			, USE_YN = #{useYn}
+			, BATCH_STRT_DT = REPLACE(#{batchStrtDt},'-','')
+			, BATCH_END_DT = REPLACE(#{batchEndDt},'-','')
+			, BATCH_TIME = #{batchTime}
+		WHERE BATCH_NO = #{batchNo}
+	</update>
+	
+	<update id="deleteBatch">
+		UPDATE MANAGE_WEB_BATCH 
+		SET DEL_YN = 'Y'
+			, UPDT_ID = #{userId}
+			, UPDT_DH = TO_CHAR(SYSDATE,'YYYYMMDDHH24MISS')
+		WHERE BATCH_NO = #{batchNo}
+	</update>
+</mapper>

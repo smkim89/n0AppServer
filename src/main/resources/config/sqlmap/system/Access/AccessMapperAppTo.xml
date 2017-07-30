@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/dtd/DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.swag.commonManagement.systemManagement.accessManagement.mapper.AccessManagementMapper">
+
+	<select id="selectIpList" resultType="dataBox" parameterType="dataBox">
+		
+        <![CDATA[
+       		SELECT 
+				ACCESS_SEQ
+       			,ACCESS_IP
+       			,USER_CLASS_CD
+       			,ACCESS_NM
+       			,END_ACCESS_IP
+       			,USE_YN
+			FROM 
+				JADE_ACCESS_IP
+			
+		 ]]>
+		 <where>		
+			<choose>
+				<when test="isEndAccessIpNull == 'NULL' ">
+					AND END_ACCESS_IP IS NULL
+				</when>
+				<when test="isEndAccessIpNull == 'NOT_NULL' ">
+					AND END_ACCESS_IP IS NOT NULL
+				</when>
+			</choose>
+ 			<if test='use_yn=="Y" '>
+        	AND USE_YN = 'Y'
+        	</if>   
+        </where>
+	</select>
+	
+	
+	<select id="selectAccessOne" parameterType="dataBox" resultType="dataBox">
+        <![CDATA[
+        SELECT 
+				ACCESS_SEQ
+       			,ACCESS_IP
+       			,DECODE(USER_CLASS_CD, '000', '최고관리자', '100', '관리자', '300', '티코인제휴사', '500', '티코인가맹점', '700', 'PG', '800', '직가맹', '900','페이코','기타') AS USER_CLASS_CD_NM
+       			,USER_CLASS_CD
+       			,ACCESS_NM
+       			,END_ACCESS_IP
+       			,USE_YN
+			FROM 
+				JADE_ACCESS_IP
+			WHERE
+				ACCESS_IP=#{access_ip}
+			
+        ]]>
+        <if test='use_yn=="Y" '>
+        	AND USE_YN = 'Y'
+        </if>
+	</select>	
+	
+</mapper>
+	

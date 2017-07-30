@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/dtd/DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.swag.n0.menu.mapper.MenuMapper">
+
+	<sql id="page_start">
+		<![CDATA[
+			SELECT 
+				*
+			FROM (
+			  SELECT 
+			    P.*, ROWNUM AS RNUM
+			  FROM (
+	  	]]>
+	</sql>
+	<sql id="page_end">
+		<![CDATA[
+				) P
+		  		WHERE ROWNUM <= #{end}
+			) PP
+		WHERE PP.RNUM > #{start}
+		]]>
+	</sql>
+	
+	
+	<sql id="defaultSql">
+		SELECT *
+			FROM
+		MENU_TB
+	</sql>
+
+	<sql id="where">
+		<where>
+			MENU_FL = 1
+		</where>
+	</sql>
+	
+	<select id="getList" resultType="dataBox" parameterType="dataBox">
+		<include refid="page_start"/>
+        <include refid="defaultSql"/>
+        <include refid="where"/>
+        	ORDER BY REQ_DT DESC
+		<include refid="page_end"/>
+			
+	</select>
+	
+	<insert id="insertOrder" parameterType="dataBox">
+		<selectKey keyProperty="orderSq" resultType="int" order="BEFORE">
+			 <![CDATA[
+			SELECT ORDER_SEQ.NEXTVAL FROM DUAL
+			  ]]>
+		</selectKey>
+		<![CDATA[
+       	INSERT INTO ORDER_TB (
+       		ORDER_SQ
+       		,UUID
+       		,REQ_DT
+       		,UPDT_DT
+       		,ORDER_AMT
+       		,USER_ID
+       	) VALUES(
+       		#{orderSq},
+       		#{uuid},
+       		TO_CHAR(SYSDATE, 'yyyymmddhh24miss'),
+       		TO_CHAR(SYSDATE, 'yyyymmddhh24miss'),
+       		0,
+       		#{userId}
+       		)
+        ]]>
+	
+	</insert>
+
+	<insert id="insertOrderList" parameterType="dataBox">
+		<selectKey keyProperty="orderListSq" resultType="int" order="BEFORE">
+			 <![CDATA[
+			SELECT ORDER_SEQ.NEXTVAL FROM DUAL
+			  ]]>
+		</selectKey>
+		<![CDATA[
+       	INSERT INTO ORDER_LIST_TB (
+       		LIST_SQ
+       		,ORDER_AMT
+       		,ORDER_NM
+       		,USER_TEL
+       		,REQ_DT
+       		,UPDT_DT
+       		,MENU_SQ
+       		,ORDER_SQ
+       		,CNT
+       	) VALUES(
+       		#{orderListSq}
+       		,#{orderAmt}
+       		,#{menuNm, jdbcType=VARCHAR }
+       		,#{userTel, jdbcType=VARCHAR}
+       		,TO_CHAR(SYSDATE, 'yyyymmddhh24miss')
+       		,TO_CHAR(SYSDATE, 'yyyymmddhh24miss')
+       		,#{menuSq}
+       		,#{orderSq}
+       		,#{menuCnt}
+       		)
+        ]]>
+	
+	</insert>
+	
+	<select id="getOrderList" resultType="dataBox" parameterType="int">
+		<![CDATA[
+			
+		SELECT A.* , 
+		       C.MENU_IMG, 
+		       C.MENU_NM, 
+		       C.MENU_AMT,
+		       C.MENU_SUB_NM 
+		  FROM ORDER_LIST_TB A, 
+		       ORDER_TB B, 
+		       MENU_TB C 
+		 WHERE A.ORDER_SQ = B.ORDER_SQ 
+		       AND A.MENU_SQ = C.MENU_SQ
+		       AND B.ORDER_SQ = #{orderId}
+	  	]]>
+			
+	</select>
+	
+	<select id="getMenu" resultType="dataBox" parameterType="int">
+		<![CDATA[
+		SELECT * FROM MENU_TB
+		       WHERE MENU_SQ = #{menuSq}
+	  	]]>
+			
+	</select>
+	
+	
+</mapper>

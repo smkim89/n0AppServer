@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org/dtd/DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.swag.main.mapper.MainMapper">
+
+	<select id="selectPayLiveAmtByMin" resultType="map">
+		SELECT DT, SUM(REQ_AMT) AS AMT FROM (
+			SELECT
+				REQ_AMT, REQ_DH,
+			  	<!-- SUBSTR(REQ_DH, 0, 12) AS DT-->
+				SUBSTR(REQ_DH, 9, 2) AS DT
+			FROM APP_TXN_PAY
+			WHERE
+				STATUS = '05'
+			  	AND SUBSTR(REQ_DH, 0, 10) > TO_CHAR(SYSDATE - 1, 'YYYYMMDDHH24')
+		)
+		GROUP BY DT
+		ORDER BY DT ASC
+	</select>
+	
+	<select id="selectNoticeList" resultType="dataBox" parameterType="dataBox">
+	<![CDATA[
+		SELECT * FROM 
+				(
+					SELECT 
+						ROWNUM RNUM
+						,TRUNC ( SYSDATE - TO_DATE(REG_DH , 'YYYYMMDDHH24MISS') ) AS DAY_BY_DAY
+						,BOARD_ID
+						,NOTICE_CLASS_CD
+						,CATEGORY_CD
+						,REPLACE(REPLACE(BOARD_CONTENT, chr(13), ''), chr(10), '<BR/>') AS BOARD_CONTENT_BR
+						,BOARD_TITLE
+						,REG_ID
+						,REG_DH
+						,UPDT_ID
+						,UPDT_DH
+						,URL
+						,END_DH
+						,BTN_NAME
+						,BTN_LINK
+						,VIEW_TYPE
+						,POPUP_YN
+						,BOARD_CONTENT
+						,START_DH
+					FROM JADE_NOTICE 
+				) WHERE RNUM > 0 AND RNUM < 7
+		    ORDER BY REG_DH DESC
+	]]>
+	</select>
+	
+	
+
+</mapper>
